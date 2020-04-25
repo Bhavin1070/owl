@@ -32,8 +32,8 @@ export async function mount(C: OwlElement, config: MountConfig): Promise<VNode> 
     node = await buildFromFn(C as Fn);
   }
   // patch it to the target
-  patch(node, config.target);
-  return node;
+  const fiber = new Fiber(null, node, config.target);
+  return scheduler.addFiber(fiber);
 }
 
 function buildFromComponent(C: typeof Component): Promise<VNode> {
@@ -57,6 +57,133 @@ export function render(elem: string | VNode, context: RenderContext = {}): Promi
   elem.builder.update(elem, context);
   return Promise.resolve(elem);
 }
+
+// -----------------------------------------------------------------------------
+// Fiber
+// -----------------------------------------------------------------------------
+
+class Fiber {
+  static nextId: number = 1;
+  id = Fiber.nextId++;
+  root: Fiber;
+  error: Error | null = null;
+  isCompleted: boolean = false;
+  counter: number = 0;
+  vnode: VNode;
+  target: HTMLElement | DocumentFragment | null;
+
+  constructor(parent: Fiber | null, vnode: VNode, target: HTMLElement | DocumentFragment | null) {
+    this.root = parent || this;
+    this.vnode = vnode;
+    this.target = target;
+  }
+
+  cancel() {}
+
+  complete() {
+    const vnode = this.vnode;
+    vnode.builder.initialize(vnode);
+    this.target!.appendChild(vnode.root!);
+  }
+
+  handleError(error: Error) {}
+}
+// -----------------------------------------------------------------------------
+// Scheduler
+// -----------------------------------------------------------------------------
+interface Task {
+  fiber: Fiber;
+  callback: (err?: Error) => void;
+}
+
+const scheduler = {
+  tasks: {} as { [id: number]: Task },
+  isRunning: false,
+  taskCount: 0,
+
+  start() {
+    this.isRunning = true;
+    this.scheduleTasks();
+  },
+
+  stop() {
+    this.isRunning = false;
+  },
+
+  addFiber(fiber: Fiber): Promise<VNode> {
+    // if the fiber was remapped into a larger rendering fiber, it may not be a
+    // root fiber.  But we only want to register root fibers
+    fiber = fiber.root;
+    return new Promise((resolve, reject) => {
+      if (fiber.error) {
+        return reject(fiber.error);
+      }
+      this.taskCount++;
+      this.tasks[fiber.id] = {
+        fiber,
+        callback: () => {
+          if (fiber.error) {
+            return reject(fiber.error);
+          }
+          resolve(fiber.vnode);
+        },
+      };
+      if (!this.isRunning) {
+        this.start();
+      }
+    });
+  },
+
+  rejectFiber(fiber: Fiber, reason: string) {
+    fiber = fiber.root;
+    const task = this.tasks[fiber.id];
+    if (task) {
+      delete this.tasks[fiber.id];
+      this.taskCount--;
+      fiber.cancel();
+      fiber.error = new Error(reason);
+      task.callback();
+    }
+  },
+
+  /**
+   * Process all current tasks. This only applies to the fibers that are ready.
+   * Other tasks are left unchanged.
+   */
+  flush() {
+    for (let id in this.tasks) {
+      let task = this.tasks[id];
+      if (task.fiber.isCompleted) {
+        task.callback();
+        delete this.tasks[id];
+        this.taskCount--;
+      }
+      if (task.fiber.counter === 0) {
+        if (!task.fiber.error) {
+          try {
+            task.fiber.complete();
+          } catch (e) {
+            task.fiber.handleError(e);
+          }
+        }
+        task.callback();
+        delete this.tasks[id];
+      }
+    }
+    if (this.taskCount === 0) {
+      this.stop();
+    }
+  },
+
+  scheduleTasks() {
+    requestAnimationFrame(() => {
+      this.flush();
+      if (this.isRunning) {
+        this.scheduleTasks();
+      }
+    });
+  },
+};
 
 // -----------------------------------------------------------------------------
 // QWeb Engine
@@ -117,7 +244,7 @@ const qweb: QWeb = {
   compile(template: string): CompiledTemplate {
     const ct = compiledTemplates[template];
     if (!ct) {
-      throw new Error("BOOM");
+      throw new Error("BOOM" + template);
     }
     for (let b of ct.blocks) {
       qweb.builders[b.id] = b;
@@ -131,10 +258,10 @@ const qweb: QWeb = {
 // Tree Diff Engine
 // ----------------------------------------------------------------------------
 
-function patch(node: VNode, target: HTMLElement) {
-  node.builder.initialize(node);
-  target.appendChild(node.root!);
-}
+// function patch(node: VNode, target: HTMLElement) {
+//   node.builder.initialize(node);
+//   target.appendChild(node.root!);
+// }
 
 // -----------------------------------------------------------------------------
 // TEMP STUFF
@@ -145,12 +272,12 @@ interface CT {
 }
 const compiledTemplates: { [str: string]: CT } = {};
 
-// <div>simple block</div>
-compiledTemplates["<div>simple block</div>"] = {
+// <div>simple vnode</div>
+compiledTemplates["<div>simple vnode</div>"] = {
   blocks: [
     {
       id: 1,
-      elems: [makeEl("<div>simple block</div>")],
+      elems: [makeEl("<div>simple vnode</div>")],
       fragments: [],
       texts: [],
       initialize(node: VNode) {

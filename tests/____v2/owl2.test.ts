@@ -12,14 +12,14 @@ describe("owl2", () => {
   // simple mounting operation, static content
   // ---------------------------------------------------------------------------
   test("can mount a simple string template", async () => {
-    await mount(`<div>simple block</div>`, { target: fixture });
-    expect(fixture.innerHTML).toBe("<div>simple block</div>");
+    await mount(`<div>simple vnode</div>`, { target: fixture });
+    expect(fixture.innerHTML).toBe("<div>simple vnode</div>");
   });
 
   test("can mount a simple VNode", async () => {
-    const block = await render(`<div>simple block</div>`);
-    await mount(block, { target: fixture });
-    expect(fixture.innerHTML).toBe("<div>simple block</div>");
+    const vnode = await render(`<div>simple vnode</div>`);
+    await mount(vnode, { target: fixture });
+    expect(fixture.innerHTML).toBe("<div>simple vnode</div>");
   });
 
   test("can render a simple functional component", async () => {
@@ -44,8 +44,8 @@ describe("owl2", () => {
   // simple mounting operation, only a text node
   // ---------------------------------------------------------------------------
   test("just a template, text node", async () => {
-    const block = await render(`simple text node`);
-    await mount(block, { target: fixture });
+    const vnode = await render(`simple text node`);
+    await mount(vnode, { target: fixture });
     expect(fixture.innerHTML).toBe("simple text node");
   });
 
@@ -71,8 +71,8 @@ describe("owl2", () => {
   // simple mounting operation, multiroot content
   // ---------------------------------------------------------------------------
   test("simple template, multiroot", async () => {
-    const block = await render(`<div>a</div><div>b</div>`);
-    await mount(block, { target: fixture });
+    const vnode = await render(`<div>a</div><div>b</div>`);
+    await mount(vnode, { target: fixture });
     expect(fixture.innerHTML).toBe("<div>a</div><div>b</div>");
   });
 
@@ -97,10 +97,10 @@ describe("owl2", () => {
   // ---------------------------------------------------------------------------
   // simple mounting operation, dynamic content
   // ---------------------------------------------------------------------------
-  test("block with dynamic content", async () => {
-    const block = await render(`<div>Hello <t t-esc="name"/></div>`, { name: "Alex" });
+  test("vnode with dynamic content", async () => {
+    const vnode = await render(`<div>Hello <t t-esc="name"/></div>`, { name: "Alex" });
 
-    await mount(block, { target: fixture });
+    await mount(vnode, { target: fixture });
     expect(fixture.innerHTML).toBe("<div>Hello Alex</div>");
   });
 
@@ -126,13 +126,13 @@ describe("owl2", () => {
   // ---------------------------------------------------------------------------
   // mounting, then update (on dynamic content)
   // ---------------------------------------------------------------------------
-  test("updating a block with dynamic content", async () => {
-    const block = await render(`<div>Hello <t t-esc="name"/></div>`, { name: "Alex" });
+  test("updating a vnode with dynamic content", async () => {
+    const vnode = await render(`<div>Hello <t t-esc="name"/></div>`, { name: "Alex" });
 
-    await mount(block, { target: fixture });
+    await mount(vnode, { target: fixture });
     expect(fixture.innerHTML).toBe("<div>Hello Alex</div>");
 
-    await render(block, { name: "Lyra" });
+    await render(vnode, { name: "Lyra" });
     expect(fixture.innerHTML).toBe("<div>Hello Lyra</div>");
   });
 
@@ -140,10 +140,10 @@ describe("owl2", () => {
     function Test() {
       return () => render(`<div>Hello <t t-esc="name"/></div>`, { name: "Alex" });
     }
-    const block = await mount(Test, { target: fixture });
+    const vnode = await mount(Test, { target: fixture });
     expect(fixture.innerHTML).toBe("<div>Hello Alex</div>");
 
-    await render(block, { name: "Lyra" });
+    await render(vnode, { name: "Lyra" });
     expect(fixture.innerHTML).toBe("<div>Hello Lyra</div>");
   });
 
@@ -152,10 +152,10 @@ describe("owl2", () => {
       name = "Alex";
       static template = `<div>Hello <t t-esc="name"/></div>`;
     }
-    const block = await mount(Test, { target: fixture });
+    const vnode = await mount(Test, { target: fixture });
     expect(fixture.innerHTML).toBe("<div>Hello Alex</div>");
 
-    await render(block, { name: "Lyra" });
+    await render(vnode, { name: "Lyra" });
     expect(fixture.innerHTML).toBe("<div>Hello Lyra</div>");
   });
 });
