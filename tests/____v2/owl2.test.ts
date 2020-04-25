@@ -11,7 +11,12 @@ describe("owl2", () => {
   // ---------------------------------------------------------------------------
   // simple mounting operation, static content
   // ---------------------------------------------------------------------------
-  test("can mount a simple template", async () => {
+  test("can mount a simple string template", async () => {
+    await mount(`<div>simple block</div>`, { target: fixture });
+    expect(fixture.innerHTML).toBe("<div>simple block</div>");
+  });
+
+  test("can mount a simple VNode", async () => {
     const block = await render(`<div>simple block</div>`);
     await mount(block, { target: fixture });
     expect(fixture.innerHTML).toBe("<div>simple block</div>");

@@ -17,13 +17,15 @@ interface MountConfig {
   target: HTMLElement;
 }
 
-type OwlElement = Fn | typeof Component | VNode;
+type OwlElement = Fn | typeof Component | VNode | string;
 
 export async function mount(C: OwlElement, config: MountConfig): Promise<VNode> {
   // Build a Block
   let node: VNode;
   if (typeof C === "object") {
     node = C;
+  } else if (typeof C === "string") {
+    node = await render(C, config);
   } else if (C.prototype instanceof Component) {
     node = await buildFromComponent(C as typeof Component);
   } else {
