@@ -1,4 +1,4 @@
-import { Component, mount, render } from "../../src/____v2/owl2";
+import { Component, mount, render, update } from "../../src/____v2/owl2";
 import { makeTestFixture } from "../helpers";
 
 let fixture: HTMLElement;
@@ -11,11 +11,6 @@ describe("owl2", () => {
   // ---------------------------------------------------------------------------
   // simple mounting operation, static content
   // ---------------------------------------------------------------------------
-  test("can mount a simple string template", async () => {
-    await mount(`<div>simple vnode</div>`, { target: fixture });
-    expect(fixture.innerHTML).toBe("<div>simple vnode</div>");
-  });
-
   test("can mount a simple VNode", async () => {
     const vnode = await render(`<div>simple vnode</div>`);
     await mount(vnode, { target: fixture });
@@ -132,7 +127,7 @@ describe("owl2", () => {
     await mount(vnode, { target: fixture });
     expect(fixture.innerHTML).toBe("<div>Hello Alex</div>");
 
-    await render(vnode, { name: "Lyra" });
+    await update(vnode, { name: "Lyra" });
     expect(fixture.innerHTML).toBe("<div>Hello Lyra</div>");
   });
 
@@ -143,7 +138,7 @@ describe("owl2", () => {
     const vnode = await mount(Test, { target: fixture });
     expect(fixture.innerHTML).toBe("<div>Hello Alex</div>");
 
-    await render(vnode, { name: "Lyra" });
+    await update(vnode, { name: "Lyra" });
     expect(fixture.innerHTML).toBe("<div>Hello Lyra</div>");
   });
 
@@ -155,7 +150,25 @@ describe("owl2", () => {
     const vnode = await mount(Test, { target: fixture });
     expect(fixture.innerHTML).toBe("<div>Hello Alex</div>");
 
-    await render(vnode, { name: "Lyra" });
+    await update(vnode, { name: "Lyra" });
     expect(fixture.innerHTML).toBe("<div>Hello Lyra</div>");
+  });
+
+  // ---------------------------------------------------------------------------
+  // a component inside a component
+  // ---------------------------------------------------------------------------
+
+  test.skip("a class component inside a class component", async () => {
+    class Child extends Component {
+      static template = `<div>class component</div>`;
+    }
+
+    class Parent extends Component {
+      static template = `<span><Child /></span>`;
+      Child = Child;
+    }
+
+    await mount(Parent, { target: fixture });
+    expect(fixture.innerHTML).toBe("<span><div>class component</div></span>");
   });
 });

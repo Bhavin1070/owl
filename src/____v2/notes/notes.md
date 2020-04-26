@@ -36,3 +36,13 @@ function App(env, props) {
 await mount(App, {target: document.body, position: "", env, props: ...})
 
 ```
+
+
+Files:
+
+- scheduler.ts
+- core
+- fiber
+- vdom
+- qweb
+- types

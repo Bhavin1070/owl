@@ -17,45 +17,33 @@ interface MountConfig {
   target: HTMLElement;
 }
 
-type OwlElement = Fn | typeof Component | VNode | string;
-
-export async function mount(C: OwlElement, config: MountConfig): Promise<VNode> {
-  // Build a Block
+export function mount(fn: Fn, config: MountConfig): Promise<VNode>;
+export function mount(Comp: typeof Component, config: MountConfig): Promise<VNode>;
+export function mount(vnode: VNode, config: MountConfig): Promise<VNode>;
+export async function mount(elem: any, config: MountConfig): Promise<VNode> {
   let node: VNode;
-  if (typeof C === "object") {
-    node = C;
-  } else if (typeof C === "string") {
-    node = await render(C, config);
-  } else if (C.prototype instanceof Component) {
-    node = await buildFromComponent(C as typeof Component);
+  if (typeof elem === "object") {
+    node = elem;
+  } else if (elem.prototype instanceof Component) {
+    let template: string = (elem as typeof Component).template;
+    const c = new (elem as typeof Component)();
+    node = await qweb.render(template, c);
   } else {
-    node = await buildFromFn(C as Fn);
+    const instance = (elem as Fn)({}, {});
+    node = await instance({});
   }
-  // patch it to the target
-  const fiber = new Fiber(null, node, config.target);
+  const fiber = new MountingFiber(null, node, config.target);
   return scheduler.addFiber(fiber);
 }
 
-function buildFromComponent(C: typeof Component): Promise<VNode> {
-  let template: string = C.template;
-  const c = new C();
-  return qweb.render(template, c);
+export function render(template: string, context: RenderContext = {}): Promise<VNode> {
+  return qweb.render(template, context);
 }
 
-function buildFromFn(fn: Fn): Promise<VNode> {
-  const instance = fn({}, {});
-  return instance({});
-}
-
-export function render(template: string, context?: RenderContext): Promise<VNode>;
-export function render(block: VNode, context?: RenderContext): Promise<VNode>;
-export function render(elem: string | VNode, context: RenderContext = {}): Promise<VNode> {
-  if (typeof elem === "string") {
-    return qweb.render(elem, context);
-  }
-  elem.context = context;
-  elem.builder.update(elem, context);
-  return Promise.resolve(elem);
+export function update(vnode: VNode, context: RenderContext): Promise<void> {
+  vnode.context = context;
+  vnode.builder.update(vnode, context);
+  return Promise.resolve();
 }
 
 // -----------------------------------------------------------------------------
@@ -70,24 +58,41 @@ class Fiber {
   isCompleted: boolean = false;
   counter: number = 0;
   vnode: VNode;
-  target: HTMLElement | DocumentFragment | null;
 
-  constructor(parent: Fiber | null, vnode: VNode, target: HTMLElement | DocumentFragment | null) {
+  constructor(parent: Fiber | null, vnode: VNode) {
     this.root = parent || this;
     this.vnode = vnode;
-    this.target = target;
   }
 
   cancel() {}
 
-  complete() {
-    const vnode = this.vnode;
-    vnode.builder.initialize(vnode);
-    this.target!.appendChild(vnode.root!);
-  }
+  complete() {}
 
   handleError(error: Error) {}
 }
+
+class MountingFiber extends Fiber {
+  target: HTMLElement | DocumentFragment;
+
+  constructor(parent: Fiber | null, vnode: VNode, target: HTMLElement | DocumentFragment) {
+    super(parent, vnode);
+    this.target = target;
+  }
+
+  complete() {
+    mountVNode(this.vnode, this.target);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// VDOM
+// -----------------------------------------------------------------------------
+
+function mountVNode(vnode: VNode, target: HTMLElement | DocumentFragment) {
+  vnode.builder.initialize(vnode);
+  target.appendChild(vnode.root!);
+}
+
 // -----------------------------------------------------------------------------
 // Scheduler
 // -----------------------------------------------------------------------------
@@ -246,7 +251,7 @@ const qweb: QWeb = {
     if (!ct) {
       throw new Error("BOOM" + template);
     }
-    for (let b of ct.blocks) {
+    for (let b of ct.builders) {
       qweb.builders[b.id] = b;
     }
     qweb.templates[template] = ct.fn;
@@ -267,14 +272,14 @@ const qweb: QWeb = {
 // TEMP STUFF
 // -----------------------------------------------------------------------------
 interface CT {
-  blocks: Builder[];
+  builders: Builder[];
   fn: CompiledTemplate;
 }
 const compiledTemplates: { [str: string]: CT } = {};
 
 // <div>simple vnode</div>
 compiledTemplates["<div>simple vnode</div>"] = {
-  blocks: [
+  builders: [
     {
       id: 1,
       elems: [makeEl("<div>simple vnode</div>")],
@@ -293,7 +298,7 @@ compiledTemplates["<div>simple vnode</div>"] = {
 
 // <div>functional component</div>
 compiledTemplates["<div>functional component</div>"] = {
-  blocks: [
+  builders: [
     {
       id: 2,
       elems: [makeEl("<div>functional component</div>")],
@@ -312,7 +317,7 @@ compiledTemplates["<div>functional component</div>"] = {
 
 // <div>class component</div>
 compiledTemplates["<div>class component</div>"] = {
-  blocks: [
+  builders: [
     {
       id: 3,
       elems: [makeEl("<div>class component</div>")],
@@ -331,7 +336,7 @@ compiledTemplates["<div>class component</div>"] = {
 
 // <div>Hello <t t-esc="name"/></div>
 compiledTemplates['<div>Hello <t t-esc="name"/></div>'] = {
-  blocks: [
+  builders: [
     {
       id: 4,
       elems: [makeEl("<div>Hello </div>")],
@@ -357,7 +362,7 @@ compiledTemplates['<div>Hello <t t-esc="name"/></div>'] = {
 
 // simple text node
 compiledTemplates["simple text node"] = {
-  blocks: [
+  builders: [
     {
       id: 5,
       elems: [],
@@ -380,7 +385,7 @@ f.appendChild(makeEl("<div>a</div>"));
 f.appendChild(makeEl("<div>b</div>"));
 
 compiledTemplates["<div>a</div><div>b</div>"] = {
-  blocks: [
+  builders: [
     {
       id: 6,
       elems: [],
@@ -394,6 +399,25 @@ compiledTemplates["<div>a</div><div>b</div>"] = {
   ],
   fn: (context: RenderContext) => {
     return new VNode(6, context);
+  },
+};
+
+// <span><Child /></span>
+compiledTemplates["<span><Child /></span>"] = {
+  builders: [
+    {
+      id: 7,
+      elems: [makeEl("<span></span>")],
+      fragments: [],
+      texts: [],
+      initialize(node: VNode) {
+        node.root = this.elems[0].cloneNode(true) as HTMLElement;
+      },
+      update() {},
+    },
+  ],
+  fn: (context: RenderContext) => {
+    return new VNode(7, context);
   },
 };
 

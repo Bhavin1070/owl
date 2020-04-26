@@ -1,4 +1,4 @@
-import { xml } from "../tags";
+import { xml } from "../../../tags";
 
 let render: any;
 let useState: any;
