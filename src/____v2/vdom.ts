@@ -31,12 +31,11 @@ export interface VContentNode {
 
 export type VNode = VDOMNode | VTextNode | VContentNode;
 
-
 // -----------------------------------------------------------------------------
 // patch and update
 // -----------------------------------------------------------------------------
 
-export function patch(el: HTMLElement, vnode: VNode) {
+export function patch(el: HTMLElement | DocumentFragment, vnode: VNode) {
   switch (vnode.type) {
     case NodeType.Text:
       const textEl = document.createTextNode(vnode.text);

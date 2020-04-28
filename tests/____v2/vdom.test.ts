@@ -47,6 +47,16 @@ describe("patch function", () => {
     expect(fixture.innerHTML).toBe("abc");
   });
 
+  test("can patch into a fragment", () => {
+    const vnode = textNode("abc");
+    expect(vnode.el).toBeNull();
+    const fragment = document.createDocumentFragment();
+    patch(fragment, vnode);
+    expect(vnode.el).toEqual(document.createTextNode("abc"));
+    fixture.appendChild(fragment);
+    expect(fixture.innerHTML).toBe("abc");
+  });
+
   test("can make a simple dom node", () => {
     const vnode = domNode("div", []);
     expect(vnode.el).toBeNull();

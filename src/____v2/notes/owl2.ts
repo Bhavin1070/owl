@@ -2,6 +2,8 @@
 // Component
 // -----------------------------------------------------------------------------
 
+import { NodeType } from "../vdom";
+
 export class Component {
   static template: string;
 }
@@ -356,6 +358,14 @@ compiledTemplates['<div>Hello <t t-esc="name"/></div>'] = {
     },
   ],
   fn: (context: RenderContext) => {
+    const vn0 = { type: NodeType.Content, children: [] };
+    const vn1 = { type: NodeType.DOM, tag: "div", el: null, children: [] };
+    vn0.children.push(vn1);
+    const vn2 = { type: NodeType.Text, text: "Hello ", el: null };
+    vn1.children.push(vn2);
+    const vn3 = { type: NodeType.Text, text: context.name, el: null };
+    vn1.children.push(vn3);
+    return vn0;
     return new VNode(4, context);
   },
 };

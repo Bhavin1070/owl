@@ -1,5 +1,5 @@
-import { Component, mount, render, update } from "../../src/____v2/owl2";
-import { makeTestFixture } from "../helpers";
+import { Component, mount, render, update } from "./owl2";
+import { makeTestFixture } from "../../../tests/helpers";
 
 let fixture: HTMLElement;
 
