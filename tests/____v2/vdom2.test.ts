@@ -1,4 +1,12 @@
-import { patch, NodeType, VTextNode, VContentNode, VNode, VDOMNode } from "../../src/____v2/vdom2";
+import {
+  patch,
+  update,
+  NodeType,
+  VTextNode,
+  VContentNode,
+  VNode,
+  VDOMNode,
+} from "../../src/____v2/vdom2";
 
 function textNode(text: string): VTextNode {
   return {
@@ -30,68 +38,42 @@ beforeEach(() => {
   fixture = document.createElement("div");
 });
 
-// function getHtml(vnode: VNode): string {
-//   let div = document.createElement("div");
-//   switch (vnode.type) {
-//     case NodeType.Text:
-//     case NodeType.DOM:
-//       if (vnode.el) {
-//         div.appendChild(vnode.el);
-//       }
-//       break;
-//     case NodeType.Content:
-//       for (let el of getEls(vnode)) {
-//         div.appendChild(el);
-//       }
-//       break;
-//   }
-//   return div.innerHTML;
-// }
-
-// function getEls(vnode: VContentNode): (HTMLElement | Text)[] {
-//   const result: (HTMLElement | Text)[] = [];
-//   for (let child of vnode.children) {
-//     if (child.type === NodeType.Content) {
-//       result.push(...getEls(child));
-//     } else if (child.el) {
-//       result.push(child.el);
-//     }
-//   }
-//   return result;
-// }
-
-describe("vdom2", () => {
-  test("can make a simple text node", async () => {
+describe("patch function", () => {
+  test("can make a simple text node", () => {
     const vnode = textNode("abc");
+    expect(vnode.el).toBeNull();
     patch(fixture, vnode);
+    expect(vnode.el).toEqual(document.createTextNode("abc"));
     expect(fixture.innerHTML).toBe("abc");
   });
 
-  test("can make a simple dom node", async () => {
+  test("can make a simple dom node", () => {
     const vnode = domNode("div", []);
+    expect(vnode.el).toBeNull();
     patch(fixture, vnode);
+    expect(vnode.el).toEqual(document.createElement("div"));
     expect(fixture.innerHTML).toBe("<div></div>");
   });
 
-  test("can make a dom node with text content", async () => {
+  test("can make a dom node with text content", () => {
     const vnode = domNode("div", [textNode("abc")]);
     patch(fixture, vnode);
     expect(fixture.innerHTML).toBe("<div>abc</div>");
   });
 
-  test("can build on an empty content node", async () => {
+  test("can build on an empty content node", () => {
     const vnode = contentNode([]);
     patch(fixture, vnode);
     expect(fixture.innerHTML).toBe("");
   });
 
-  test("can build on an non empty content node", async () => {
+  test("can build on an non empty content node", () => {
     const vnode = contentNode([textNode("abc"), domNode("div", [])]);
     patch(fixture, vnode);
     expect(fixture.innerHTML).toBe("abc<div></div>");
   });
 
-  test("content node in a dom node in a content node", async () => {
+  test("content node in a dom node in a content node", () => {
     const vnode = contentNode([
       textNode("abc"),
       contentNode([domNode("span", [textNode("text")])]),
@@ -99,4 +81,42 @@ describe("vdom2", () => {
     patch(fixture, vnode);
     expect(fixture.innerHTML).toBe("abc<span>text</span>");
   });
+});
+
+describe("update function", () => {
+  test("can update some text content", async () => {
+    const vnode = textNode("abc");
+    patch(fixture, vnode);
+    const text = fixture.childNodes[0];
+    expect(text).toEqual(document.createTextNode("abc"));
+
+    update(vnode, textNode("def"));
+    expect(fixture.innerHTML).toBe("def");
+    expect(fixture.childNodes[0]).toBe(text);
+  });
+
+  test("can update a text inside a div content", async () => {
+    const vnode = domNode("div", [textNode("abc")]);
+    patch(fixture, vnode);
+    const text = fixture.childNodes[0].childNodes[0];
+    expect(fixture.innerHTML).toBe("<div>abc</div>");
+    expect(text).toEqual(document.createTextNode("abc"));
+
+    update(vnode, domNode("div", [textNode("def")]));
+    expect(fixture.innerHTML).toBe("<div>def</div>");
+    expect(fixture.childNodes[0].childNodes[0]).toBe(text);
+  });
+
+  test("can update a text inside a div content", async () => {
+    const vnode = domNode("div", [textNode("abc")]);
+    patch(fixture, vnode);
+    const text = fixture.childNodes[0].childNodes[0];
+    expect(fixture.innerHTML).toBe("<div>abc</div>");
+    expect(text).toEqual(document.createTextNode("abc"));
+
+    update(vnode, domNode("div", [textNode("def")]));
+    expect(fixture.innerHTML).toBe("<div>def</div>");
+    expect(fixture.childNodes[0].childNodes[0]).toBe(text);
+  });
+
 });

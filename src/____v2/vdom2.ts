@@ -50,4 +50,27 @@ export function patch(el: HTMLElement, vnode: VNode) {
   }
 }
 
-export function update(vnode: VContentNode, target: VContentNode) {}
+/**
+ * This function assumes that oldvnode has been patched first (and so, has valid
+ * html or text elements)
+ * 
+ * It returns a vnode which matches the newVNode structure, and properly patched.
+ * It most likely is oldVNode, but it could be the new one in some cases
+ */
+export function update(oldVNode: VNode, newVNode: VNode): VNode {
+  if (newVNode.type !== oldVNode.type) {
+    return oldVNode;
+  }
+  switch (oldVNode.type) {
+    case NodeType.Text:
+      //   if (target.type === NodeType.Text) {
+      oldVNode.el!.textContent = (newVNode as VTextNode).text;
+      //   }
+      break;
+    case NodeType.DOM:
+      //   if (target.type === NodeType.DOM) {
+      update(oldVNode.children[0], (newVNode as VDOMNode).children[0]);
+    //   }
+  }
+  return oldVNode;
+}
