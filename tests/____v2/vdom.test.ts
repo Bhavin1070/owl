@@ -6,7 +6,7 @@ import {
   VContentNode,
   VNode,
   VDOMNode,
-} from "../../src/____v2/vdom2";
+} from "../../src/____v2/vdom";
 
 function textNode(text: string): VTextNode {
   return {
@@ -107,16 +107,22 @@ describe("update function", () => {
     expect(fixture.childNodes[0].childNodes[0]).toBe(text);
   });
 
-  test("can update a text inside a div content", async () => {
-    const vnode = domNode("div", [textNode("abc")]);
+  test("can transform a dom node into a different dom node type", async () => {
+    let vnode: VNode = domNode("div", [textNode("abc")]);
     patch(fixture, vnode);
-    const text = fixture.childNodes[0].childNodes[0];
     expect(fixture.innerHTML).toBe("<div>abc</div>");
-    expect(text).toEqual(document.createTextNode("abc"));
 
-    update(vnode, domNode("div", [textNode("def")]));
-    expect(fixture.innerHTML).toBe("<div>def</div>");
-    expect(fixture.childNodes[0].childNodes[0]).toBe(text);
+    vnode = update(vnode, domNode("span", [textNode("def")]));
+
+    expect(fixture.innerHTML).toBe("<span>def</span>");
   });
 
+  test("can transform a text node into a dom node", async () => {
+    const vnode = textNode("abc");
+    patch(fixture, vnode);
+    expect(fixture.innerHTML).toBe("abc");
+
+    update(vnode, domNode("span", [textNode("def")]));
+    expect(fixture.innerHTML).toBe("<span>def</span>");
+  });
 });
