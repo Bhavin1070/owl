@@ -26,6 +26,7 @@ export interface VTextNode {
 
 export interface VContentNode {
   type: NodeType.Content;
+  data: any;
   children: VNode[];
 }
 

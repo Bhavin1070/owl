@@ -1,5 +1,4 @@
 import { Fiber } from "./fiber";
-import { VNode } from "./vdom";
 
 interface Task {
   fiber: Fiber;
@@ -20,7 +19,7 @@ export const scheduler = {
     this.isRunning = false;
   },
 
-  addFiber(fiber: Fiber): Promise<VNode> {
+  addFiber(fiber: Fiber): Promise<void> {
     // if the fiber was remapped into a larger rendering fiber, it may not be a
     // root fiber.  But we only want to register root fibers
     fiber = fiber.root;
@@ -35,7 +34,7 @@ export const scheduler = {
           // if (fiber.error) {
           //   return reject(fiber.error);
           // }
-          resolve(fiber.vnode);
+          resolve();
         },
       };
       if (!this.isRunning) {
