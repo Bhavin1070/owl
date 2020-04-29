@@ -16,7 +16,7 @@ function textNode(text: string): VTextNode {
   };
 }
 
-function domNode(tag: string, children: VNode[]): VDOMNode {
+function domNode(tag: string, children: VNode[]): VDOMNode<any> {
   return {
     type: NodeType.DOM,
     tag: tag,
@@ -25,10 +25,11 @@ function domNode(tag: string, children: VNode[]): VDOMNode {
   };
 }
 
-function contentNode(children: VNode[]): VContentNode {
+function contentNode(children: VNode[]): VContentNode<any> {
   return {
     type: NodeType.Content,
     children,
+    data: null
   };
 }
 
@@ -135,4 +136,33 @@ describe("update function", () => {
     update(vnode, domNode("span", [textNode("def")]));
     expect(fixture.innerHTML).toBe("<span>def</span>");
   });
+
+  test("can transform a content node into another content node", async () => {
+    const oldvnode = contentNode([domNode('div', [textNode("abc")])]);
+    const newvnode = contentNode([domNode('div', [textNode("def")])]);
+    patch(fixture, oldvnode);
+    expect(fixture.innerHTML).toBe("<div>abc</div>");
+
+    update(oldvnode, newvnode);
+    expect(fixture.innerHTML).toBe("<div>def</div>");
+  });
+
+
+  test("can update two text nodes", async () => {
+    const oldvnode = contentNode([ textNode('abc'), textNode('def')]);
+    const newvnode = contentNode([ textNode('abc'), textNode('ghi')]);
+    patch(fixture, oldvnode);
+    expect(fixture.innerHTML).toBe("abcdef");
+
+    const t1 = fixture.childNodes[0];
+    const t2 = fixture.childNodes[1];
+    expect(t2.textContent).toBe('def');
+    update(oldvnode, newvnode);
+    expect(fixture.innerHTML).toBe("abcghi");
+    expect(fixture.childNodes[0]).toBe(t1);
+    expect(fixture.childNodes[1]).toBe(t2);
+    expect(t2.textContent).toBe('ghi');
+
+  });
+
 });

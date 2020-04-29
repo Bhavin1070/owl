@@ -1,5 +1,5 @@
 import { makeTestFixture } from "../helpers";
-import { mount, render } from "../../src/____v2/owl";
+import { mount, render, update } from "../../src/____v2/owl";
 import { Component } from "../../src/____v2/component";
 
 let fixture: HTMLElement;
@@ -119,15 +119,15 @@ describe("mount", () => {
   // ---------------------------------------------------------------------------
   // mounting, then update (on dynamic content)
   // ---------------------------------------------------------------------------
-  // test("updating a vnode with dynamic content", async () => {
-  //   const vnode = render(`<div>Hello <t t-esc="name"/></div>`, { name: "Alex" });
+  test("updating a vnode with dynamic content", async () => {
+    const vnode = render(`<div>Hello <t t-esc="name"/></div>`, { name: "Alex" });
 
-  //   await mount(vnode, { target: fixture });
-  //   expect(fixture.innerHTML).toBe("<div>Hello Alex</div>");
+    await mount(vnode, { target: fixture });
+    expect(fixture.innerHTML).toBe("<div>Hello Alex</div>");
 
-  //   await render(vnode, { name: "Lyra" });
-  //   expect(fixture.innerHTML).toBe("<div>Hello Lyra</div>");
-  // });
+    await update(vnode, { name: "Lyra" });
+    expect(fixture.innerHTML).toBe("<div>Hello Lyra</div>");
+  });
 
   // test("updating a functional component with dynamic content", async () => {
   //   function Test() {

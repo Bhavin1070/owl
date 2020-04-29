@@ -11,11 +11,11 @@ export const enum NodeType {
   Text,
   Content,
 }
-export interface VDOMNode {
+export interface VDOMNode<T> {
   type: NodeType.DOM;
   tag: string;
   el: HTMLElement | null;
-  children: VNode[];
+  children: VNode<T>[];
 }
 
 export interface VTextNode {
@@ -24,13 +24,13 @@ export interface VTextNode {
   el: Text | null;
 }
 
-export interface VContentNode {
+export interface VContentNode<T> {
   type: NodeType.Content;
-  data: any;
-  children: VNode[];
+  data: T;
+  children: VNode<T>[];
 }
 
-export type VNode = VDOMNode | VTextNode | VContentNode;
+export type VNode<T = any> = VDOMNode<T> | VTextNode | VContentNode<T>;
 
 // -----------------------------------------------------------------------------
 // patch and update
@@ -59,7 +59,7 @@ export function patch(el: HTMLElement | DocumentFragment, vnode: VNode) {
   }
 }
 
-function makeDOMVNode(vnode: VDOMNode): HTMLElement {
+function makeDOMVNode<T>(vnode: VDOMNode<T>): HTMLElement {
   const el = document.createElement(vnode.tag);
   vnode.el = el;
   for (let child of vnode.children) {
@@ -77,12 +77,12 @@ function makeDOMVNode(vnode: VDOMNode): HTMLElement {
  * It returns a vnode which matches the newVNode structure, and properly patched.
  * It most likely is oldVNode, but it could be the new one in some cases
  */
-export function update(oldVNode: VNode, newVNode: VNode): VNode {
+export function update<T>(oldVNode: VNode<T>, newVNode: VNode<T>): VNode<T> {
   switch (oldVNode.type) {
     case NodeType.Text:
       switch (newVNode.type) {
         case NodeType.Text:
-          oldVNode.el!.textContent = (newVNode as VTextNode).text;
+          oldVNode.el!.textContent = newVNode.text;
           return oldVNode;
         case NodeType.DOM:
           oldVNode.el!.replaceWith(makeDOMVNode(newVNode));
@@ -94,7 +94,7 @@ export function update(oldVNode: VNode, newVNode: VNode): VNode {
       switch (newVNode.type) {
         case NodeType.DOM:
           if (oldVNode.tag === newVNode.tag) {
-            update(oldVNode.children[0], (newVNode as VDOMNode).children[0]);
+            update(oldVNode.children[0], newVNode.children[0]);
             return oldVNode;
           } else {
             oldVNode.el!.replaceWith(makeDOMVNode(newVNode));
@@ -105,6 +105,14 @@ export function update(oldVNode: VNode, newVNode: VNode): VNode {
           throw new Error("not yet implemented");
       }
     case NodeType.Content:
+      switch (newVNode.type) {
+        case NodeType.Content:
+          return update(oldVNode.children[0], newVNode.children[0])
+      }
       throw new Error("not yet implemented");
   }
+}
+
+function updateChildren<T>(oldChildren: VNode<T>[], newChildren: VNode<T>[]) {
+  
 }
